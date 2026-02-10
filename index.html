@@ -1,0 +1,54 @@
+﻿<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>IndyHAX â€¢ DOM Clobbering</title>
+  <style>
+    body{font-family:system-ui,Segoe UI,Roboto,Arial,sans-serif;max-width:900px;margin:40px auto;padding:0 16px}
+    .card{border:1px solid #ddd;border-radius:12px;padding:18px;background:#fff}
+    input{padding:10px 12px;border-radius:10px;border:1px solid #ddd;width:min(560px,100%)}
+    button{padding:10px 12px;border-radius:10px;border:1px solid #111;background:#111;color:#fff;margin-left:6px}
+    .muted{color:#666}
+    pre{margin-top:12px;padding:12px;border-radius:10px;background:#f6f8fa;border:1px solid #e5e7eb;white-space:pre-wrap}
+  </style>
+</head>
+<body>
+  <h1>IndyHAX CTF â€” DOM Clobbering</h1>
+  <div class="card">
+    <p class="muted">The page trusts global variables too much.</p>
+    <p>Input is rendered as HTML below.</p>
+    <p>
+      <input id="q" placeholder='Try HTML that creates an element named "isAdmin"' />
+      <button id="go">Render</button>
+    </p>
+    <pre id="out"></pre>
+    <div id="sink"></div>
+  </div>
+
+  <script>
+    const params = new URLSearchParams(location.search);
+    const sink = document.querySelector('#sink');
+    const q = document.querySelector('#q');
+    const out = document.querySelector('#out');
+
+    function check(){
+      // Vulnerable: expects isAdmin boolean, but DOM clobbering can create window.isAdmin
+      if (window.isAdmin === true) return 'INDYHAX{dom_clobbering_can_break_security_assumptions}';
+      return 'Not admin.';
+    }
+
+    function render(v){
+      sink.innerHTML = v; // intentionally unsafe
+      out.textContent = check();
+    }
+
+    document.querySelector('#go').addEventListener('click', () => {
+      render(q.value);
+      history.replaceState(null, '', '?q=' + encodeURIComponent(q.value));
+    });
+
+    if (params.has('q')) { q.value = params.get('q'); render(q.value); }
+  </script>
+</body>
+</html>
